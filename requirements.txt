@@ -1,0 +1,16 @@
+bcrypt
+blinker
+certifi
+click
+dnspython
+Flask
+Flask-Cors
+Flask-PyMongo
+gunicorn
+itsdangerous
+Jinja2
+MarkupSafe
+packaging
+pymongo
+python-dotenv
+Werkzeug
