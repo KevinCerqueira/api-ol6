@@ -42,17 +42,20 @@ def login():
 
 @api.route('/api/users', methods=['POST'])
 def create_user():
-    email = request.json['email']
-    password = request.json['password']
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    user_data = request.json
 
-    if email and password:
-        user = db.insert_one(
-            {'email': email, 'password': hashed_password}
-        )
-        return success_response({"id": str(user.inserted_id)}, 'User created successfully')
-    else:
-        return error_response('Missing username or password')
+    # Verificando se 'email' e 'password' estão presentes
+    if 'email' not in user_data or 'password' not in user_data:
+        return error_response('Missing email or password')
+
+    # Hash da senha
+    hashed_password = bcrypt.hashpw(user_data['password'].encode('utf-8'), bcrypt.gensalt())
+    user_data['password'] = hashed_password
+
+    # Inserindo no banco de dados
+    result = db.insert_one(user_data)
+
+    return success_response({"id": str(result.inserted_id)}, 'User created successfully')
 
 
 @api.route('/api/users/<user_id>', methods=['GET'])
