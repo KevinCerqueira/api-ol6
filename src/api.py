@@ -62,26 +62,55 @@ def create_user():
 def get_user(user_id):
     user = db.find_one({'_id': ObjectId(user_id)})
     if user:
+        user['id'] = str(user["_id"])
         del user["_id"]
+        del user["password"]
+
         response = json_util.dumps(user)
         return success_response(json.loads(response), 'User fetched successfully')
     else:
         return error_response('User not found')
 
 
+@api.route('/api/users', methods=['GET'])
+def get_users():
+    users = db.find()
+    if users:
+        response = list()
+        for user in users:
+            user["id"] = str(user["_id"])
+            del user['_id']
+            del user['password']
+            response.append(user)
+
+        response = json_util.dumps(response)
+        return success_response(json.loads(response), 'Users fetched successfully')
+    else:
+        return error_response('Some error has occurred')
+
+
 @api.route('/api/users/<user_id>', methods=['PUT'])
 def update_user(user_id):
-    email = request.json['email']
-    password = request.json['password']
+    update_data = request.json
+    user = db.find_one({'_id': ObjectId(user_id)})
 
-    if email and password:
-        db.update_one({'_id': ObjectId(user_id)}, {'$set': {
-            'email': email,
-            'password': password
-        }})
-        return success_response({}, 'User updated successfully')
-    else:
-        return error_response('Missing username or password')
+    # Verificando se o usuário existe
+    if not user:
+        return error_response('User not found')
+
+    # Verificando se todos os campos a serem atualizados existem no usuário
+    missing_fields = [field for field in update_data if field not in user]
+    if missing_fields:
+        return error_response(f'Missing fields in the user: {", ".join(missing_fields)}')
+
+    # Se a senha estiver presente, ela precisa ser hashada
+    if 'password' in update_data:
+        hashed_password = bcrypt.hashpw(update_data['password'].encode('utf-8'), bcrypt.gensalt())
+        update_data['password'] = hashed_password
+
+    # Atualizando no banco de dados
+    db.update_one({'_id': ObjectId(user_id)}, {'$set': update_data})
+    return success_response({}, 'User updated successfully')
 
 
 @api.route('/api/users/<user_id>', methods=['DELETE'])
